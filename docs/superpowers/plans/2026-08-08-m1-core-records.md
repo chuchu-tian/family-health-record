@@ -10,6 +10,10 @@
 
 **Spec:** `docs/superpowers/specs/2026-08-08-family-health-record-design.md`（已获用户批准）
 
+
+> **执行状态（2026-08-09）**：Task 1-3、4（测试代码）、5（策略文件）、6-16 已完成并推送；站点已上线 https://chuchu-tian.github.io/family-health-record/ （显示云端开通引导页）。
+> **待人工（Task 0 → 云端开通）**：按 docs/SETUP-CLOUD.md 建 Supabase 项目后，迁移/建号/RLS测试（Task 2/3/5 的运行步骤、Task 4 红绿验证、Task 17 云端自查、Task 18 真机验收）即可执行。密钥三查已通过（无跟踪/无字符串/历史干净）。
+
 ---
 
 ## 文件结构（全景）
