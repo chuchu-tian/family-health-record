@@ -1,0 +1,6 @@
+[
+  { "email": "chuchu@example.com", "password": "改成强密码", "display_name": "我", "avatar": "👩", "role": "admin", "birth_year": 1995 },
+  { "email": "boyfriend@example.com", "password": "改成强密码", "display_name": "阿伟", "avatar": "👨", "role": "member", "birth_year": 1993 },
+  { "email": "dad@example.com", "password": "改成强密码", "display_name": "爸爸", "avatar": "👴", "role": "member", "birth_year": 1965 },
+  { "email": "mom@example.com", "password": "改成强密码", "display_name": "妈妈", "avatar": "👵", "role": "member", "birth_year": 1968 }
+]
