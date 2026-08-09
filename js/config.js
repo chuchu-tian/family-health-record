@@ -1,5 +1,5 @@
 // js/config.js — 前端公开配置。anon key 按 Supabase 设计可公开——数据安全靠 RLS 与登录，不靠隐藏它。
 // ⚠️ 云端尚未开通：按 docs/SETUP-CLOUD.md 完成四步后，把下面两个值填上并推送即可上线。
 export const SUPABASE_URL = 'https://prkugdtyenxtlptlpozg.supabase.co'
-export const SUPABASE_ANON_KEY = 'sb_publishable_KSIeEqWaK11w-KrFg8uYfQ_34i-pAQ7CPX0ym1xwgQo'
+export const SUPABASE_ANON_KEY = 'sb_publishable_KSIeEqWaK11w-KrFg8uYfQ_34i-pAQ7'
 export const CLOUD_READY = () => !!(SUPABASE_URL && SUPABASE_ANON_KEY)
