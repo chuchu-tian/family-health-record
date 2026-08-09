@@ -110,7 +110,7 @@ export async function recordsWithFollowUp() {
 
 // ========== M2: AI 识别 ==========
 
-// 调用 Edge Function 分���附件
+// 调用 Edge Function 分析附件
 export async function analyzeAttachment(attachmentId) {
   const { data, error } = await client.functions.invoke('analyze-attachment', {
     body: { attachmentId }
@@ -119,9 +119,9 @@ export async function analyzeAttachment(attachmentId) {
   return data
 }
 
-// 将 AI 识���结果应用到病历���用户确���后���用）
+// 将 AI 识别结果应用到病历（用户确认后调用）
 export async function applyAiExtraction(recordId, extracted) {
-  // 更新病历基础���段
+  // 更新病历基础字段
   const recordFields = {}
   if (extracted.illness_name) recordFields.illness_name = extracted.illness_name
   if (extracted.diagnosis) recordFields.diagnosis = extracted.diagnosis
@@ -142,7 +142,7 @@ export async function applyAiExtraction(recordId, extracted) {
     await saveMedications(recordId, extracted.medications)
   }
 
-  // 添加���康指标
+  // 添加健康指标
   if (extracted.health_metrics && extracted.health_metrics.length > 0) {
     const record = await getRecord(recordId)
     const metricsRows = extracted.health_metrics.map(m => ({
@@ -160,9 +160,9 @@ export async function applyAiExtraction(recordId, extracted) {
   }
 }
 
-// ========== M2: 搜��� ==========
+// ========== M2: 搜索 ==========
 
-// 全文搜索���历
+// 全文搜索病历
 export async function searchRecords(query) {
   const { data, error } = await client.from('records')
     .select('*, medications(id), attachments(id)')
@@ -175,7 +175,7 @@ export async function searchRecords(query) {
 
 // ========== M3: 健康指标 ==========
 
-// 获取某���员的健���指标���表（按���型分���）
+// 获取某成员的健康指标列表（按类型分组）
 export async function listHealthMetrics(memberId, metricType = null, limit = 100) {
   let query = client.from('health_metrics')
     .select('*')
@@ -192,21 +192,21 @@ export async function listHealthMetrics(memberId, metricType = null, limit = 100
   return data
 }
 
-// ���加���条健康指���
+// 添加一条健康指标
 export async function createHealthMetric(fields) {
   const { data, error } = await client.from('health_metrics').insert(fields).select().single()
   if (error) throw error
   return data
 }
 
-// 批量添���健康���标（���于 AI ���别或手���输入多项）
+// 批量添加健康指标（用于 AI 识别或手动输入多项）
 export async function createHealthMetrics(metricsArray) {
   const { data, error } = await client.from('health_metrics').insert(metricsArray).select()
   if (error) throw error
   return data
 }
 
-// 删除���康指���
+// 删除健康指标
 export async function deleteHealthMetric(id) {
   const { error } = await client.from('health_metrics').delete().eq('id', id)
   if (error) throw error

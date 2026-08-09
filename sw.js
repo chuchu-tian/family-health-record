@@ -1,11 +1,12 @@
 // sw.js — 缓存应用外壳，让断网也能打开界面（看到明确的网络提示）；数据与文件请求不缓存
-const CACHE = 'fhr-v1'
+const CACHE = 'fhr-v2'
 const SHELL = [
   './', 'index.html', 'css/style.css', 'manifest.webmanifest',
   'vendor/supabase.js', 'js/app.js', 'js/router.js', 'js/db.js', 'js/api.js',
   'js/utils.js', 'js/config.js', 'js/compress.js',
   'js/views/setup.js', 'js/views/login.js', 'js/views/home.js', 'js/views/timeline.js',
-  'js/views/detail.js', 'js/views/form.js', 'icons/icon.svg', 'icons/icon-180.png',
+  'js/views/detail.js', 'js/views/form.js', 'js/views/search.js', 'js/views/metrics.js',
+  'icons/icon.svg', 'icons/icon-180.png',
 ]
 
 self.addEventListener('install', (e) => {

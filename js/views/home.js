@@ -1,10 +1,10 @@
-// js/views/home.js — 成员门户首���：成���大卡��� + ���期复���横幅 + 新增按钮 + 搜索入���
+// js/views/home.js — 成员门户首页：成员大卡片 + 近期复诊横幅 + 新增按钮 + 搜索入口
 import { listMembers, latestRecordByMember, recordsWithFollowUp } from '../api.js'
 import { escapeHtml, fmtDate, followUpKind } from '../utils.js'
 import { setTitle, go } from '../router.js'
 
 export default async function homeView(app) {
-  setTitle('���庭病例档案')
+  setTitle('家庭病例档案')
   const [members, latest, followUps] = await Promise.all([
     listMembers(), latestRecordByMember(), recordsWithFollowUp(),
   ])
@@ -19,12 +19,12 @@ export default async function homeView(app) {
     ${alerts.map(a => `
       <button class="banner ${a.kind === 'overdue' ? 'overdue' : ''}" data-rec="${a.id}"
         style="display:block;width:100%;text-align:left;font:inherit;cursor:pointer">
-        ${a.kind === 'overdue' ? '���� 复���日期已���' : '���� 近期复诊'}：${escapeHtml(memberName[a.member_id] ?? '')}
+        ${a.kind === 'overdue' ? '📅 复诊日期已过' : '🔔 近期复诊'}：${escapeHtml(memberName[a.member_id] ?? '')}
         ${fmtDate(a.follow_up_on)}${a.department ? ' · ' + escapeHtml(a.department) : ''}（${escapeHtml(a.illness_name)}）
       </button>`).join('')}
     <div style="display:flex;gap:10px;margin-bottom:16px">
       <button class="btn" id="new-btn" style="flex:1">＋ 新增</button>
-      <button class="btn btn-secondary" id="search-btn" style="flex:1">���� 搜���</button>
+      <button class="btn btn-secondary" id="search-btn" style="flex:1">🔍 搜索</button>
     </div>
     ${members.map(m => {
       const rec = latest[m.id]
@@ -34,12 +34,12 @@ export default async function homeView(app) {
             <span class="name">${escapeHtml(m.display_name)}</span>
             ${m.role === 'admin' ? '<span class="tag">管理员</span>' : ''}
             <br><span class="sub">${rec
-              ? `���近���${escapeHtml(rec.illness_name)} · ${fmtDate(rec.occurred_on)}`
+              ? `最近：${escapeHtml(rec.illness_name)} · ${fmtDate(rec.occurred_on)}`
               : '还没有记录'}</span>
           </span>
         </button>`
     }).join('')}
-    ${members.length ? '' : '<div class="empty">还���有家庭成员，请先运��� scripts/create-users.mjs</div>'}`
+    ${members.length ? '' : '<div class="empty">还没有家庭成员，请先运行 scripts/create-users.mjs</div>'}`
 
   app.querySelector('#new-btn').addEventListener('click', () => go('/new'))
   app.querySelector('#search-btn').addEventListener('click', () => go('/search'))

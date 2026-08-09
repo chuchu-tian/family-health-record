@@ -1,27 +1,21 @@
--- 004_health_metrics_rls.sql — 健康指标表���行级���全策略
+-- 004_health_metrics_rls.sql — 健康指标表的行级安全策略
+-- 与 002_rls.sql 保持一致的三条约定：
+--   1. 所有策略限定 to authenticated —— 未登录（anon）一律拒绝，守住隐私底线
+--   2. 复用 can_write_member() 助手 —— 等价于「本人或管理员」
+--   3. update 同时写 using + with check —— 防止把指标改挂到别人名下
 
 alter table health_metrics enable row level security;
 
--- 全���人都���查看所有人���健康指标
-create policy "全家人���查看健康���标"
-  on health_metrics for select
+-- 登录后全家人都可以查看所有人的健康指标
+create policy health_metrics_select on health_metrics for select to authenticated
   using (true);
 
--- ���有本���和管理员可以���加/修改���己的指���
-create policy "本人���管理员���添加健康指标"
-  on health_metrics for insert
-  with check (
-    member_id = current_member_id() or is_admin()
-  );
+-- 只有本人和管理员可以增删改自己的指标
+create policy health_metrics_insert on health_metrics for insert to authenticated
+  with check (can_write_member(member_id));
 
-create policy "本人和管理员���修改健康指标"
-  on health_metrics for update
-  using (
-    member_id = current_member_id() or is_admin()
-  );
+create policy health_metrics_update on health_metrics for update to authenticated
+  using (can_write_member(member_id)) with check (can_write_member(member_id));
 
-create policy "本人和管理员可删���健康���标"
-  on health_metrics for delete
-  using (
-    member_id = current_member_id() or is_admin()
-  );
+create policy health_metrics_delete on health_metrics for delete to authenticated
+  using (can_write_member(member_id));

@@ -1,4 +1,4 @@
-// js/app.js — 入口：注册路由���绑定顶栏、注册 Service Worker
+// js/app.js — 入口：注册路由、绑定顶栏、注册 Service Worker
 import { route, render, go } from './router.js'
 import { logout } from './db.js'
 import setupView from './views/setup.js'

@@ -1,6 +1,6 @@
--- 003_health_metrics.sql — M2/M3 健康���标表���搜索索引
+-- 003_health_metrics.sql — M2/M3 健康指标表和搜索索引
 
--- 健康���标表（��� AI 识���或手动���入）
+-- 健康指标表（由 AI 识别或手动录入）
 create table if not exists health_metrics (
   id uuid primary key default gen_random_uuid(),
   member_id uuid not null references members(id) on delete cascade,
@@ -9,23 +9,23 @@ create table if not exists health_metrics (
   metric_type text not null check (metric_type in (
     'blood_pressure_systolic',    -- 收缩压
     'blood_pressure_diastolic',   -- 舒张压
-    'heart_rate',                 -- ���率
-    'blood_glucose',              -- 血���
+    'heart_rate',                 -- 心率
+    'blood_glucose',              -- 血糖
     'temperature',                -- 体温
-    'weight',                     -- 体���
+    'weight',                     -- 体重
     'height',                     -- 身高
     'bmi',                        -- BMI
-    'cholesterol_total',          -- 总���固醇
-    'cholesterol_ldl',            -- 低密度���蛋白
-    'cholesterol_hdl',            -- ���密度脂蛋���
-    'triglycerides',              -- 甘油���酯
-    'white_blood_cell',           -- ���细胞
-    'red_blood_cell',             -- ���细胞
-    'hemoglobin',                 -- 血红���白
-    'platelet',                   -- 血小���
-    'uric_acid',                  -- 尿���
+    'cholesterol_total',          -- 总胆固醇
+    'cholesterol_ldl',            -- 低密度脂蛋白
+    'cholesterol_hdl',            -- 高密度脂蛋白
+    'triglycerides',              -- 甘油三酯
+    'white_blood_cell',           -- 白细胞
+    'red_blood_cell',             -- 红细胞
+    'hemoglobin',                 -- 血红蛋白
+    'platelet',                   -- 血小板
+    'uric_acid',                  -- 尿酸
     'creatinine',                 -- 肌酐
-    'alt',                        -- ���丙转氨酶
+    'alt',                        -- 谷丙转氨酶
     'ast',                        -- 谷草转氨酶
     'other'                       -- 其他
   )),
@@ -40,10 +40,10 @@ create index if not exists health_metrics_member_idx on health_metrics (member_i
 create index if not exists health_metrics_type_idx on health_metrics (member_id, metric_type, measured_on desc);
 create index if not exists health_metrics_record_idx on health_metrics (record_id);
 
--- ���文搜���配置：为 records 表添加���索列
+-- 全文搜索配置：为 records 表添加检索列
 alter table records add column if not exists search_vector tsvector;
 
--- 生成搜索向量���函数（中文分���简化版���直���分字 + 拼音首字母，实用优先���
+-- 生成搜索向量的函数（中文分词简化版：直接分字 + 拼音首字母，实用优先）
 create or replace function records_search_vector() returns trigger
 language plpgsql as $$
 begin
@@ -60,7 +60,7 @@ create trigger records_search_vector_update
   before insert or update on records
   for each row execute function records_search_vector();
 
--- 为现有记录生成���索���量
+-- 为现有记录生成检索向量
 update records set search_vector =
   setweight(to_tsvector('simple', coalesce(illness_name, '')), 'A') ||
   setweight(to_tsvector('simple', coalesce(diagnosis, '')), 'B') ||
