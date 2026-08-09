@@ -4,12 +4,15 @@
 import test, { before, after } from 'node:test'
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
+import { fileURLToPath } from 'node:url'
+import { dirname, join } from 'node:path'
 
+const __dirname = dirname(fileURLToPath(import.meta.url))
 const URL = process.env.SUPABASE_URL
 const ANON = process.env.SUPABASE_ANON_KEY
 const SVC = process.env.SUPABASE_SERVICE_KEY
 assert.ok(URL && ANON && SVC, '请用 --env-file=.env.local 运行，并配置好三项凭证')
-const family = JSON.parse(readFileSync(new URL('../scripts/family.local.json', import.meta.url)))
+const family = JSON.parse(readFileSync(join(__dirname, '../scripts/family.local.json'), 'utf-8'))
 const adminCfg = family.find(p => p.role === 'admin')
 const memberCfgs = family.filter(p => p.role === 'member')
 assert.ok(adminCfg && memberCfgs.length >= 2, 'family.local.json 需要 1 个 admin 和至少 2 个 member')
@@ -45,7 +48,10 @@ async function seed(token, memberId) {
     method: 'POST', headers: { ...H(token), Prefer: 'return=representation' },
     body: JSON.stringify({ member_id: memberId, occurred_on: '2026-01-01', illness_name: 'RLS测试记录' }),
   })
-  assert.equal(res.status, 201, `种子插入失败: ${res.status} ${await res.text()}`)
+  if (res.status !== 201) {
+    const body = await res.text()
+    throw new Error(`种子插入失败: ${res.status} ${body}`)
+  }
   const [row] = await res.json(); createdRecords.push(row.id); return row
 }
 after(async () => {

@@ -1,11 +1,14 @@
 // scripts/create-users.mjs — 用 service key 创建家庭账号并写入 members 表（幂等，可重复运行）
 // 运行: node --env-file=.env.local scripts/create-users.mjs
 import { readFileSync } from 'node:fs'
+import { fileURLToPath } from 'node:url'
+import { dirname, join } from 'node:path'
 
+const __dirname = dirname(fileURLToPath(import.meta.url))
 const URL = process.env.SUPABASE_URL, SVC = process.env.SUPABASE_SERVICE_KEY
 if (!URL || !SVC) throw new Error('请在 .env.local 配置 SUPABASE_URL 和 SUPABASE_SERVICE_KEY')
 const H = { apikey: SVC, Authorization: `Bearer ${SVC}`, 'Content-Type': 'application/json' }
-const family = JSON.parse(readFileSync(new URL('./family.local.json', import.meta.url)))
+const family = JSON.parse(readFileSync(join(__dirname, 'family.local.json'), 'utf-8'))
 
 for (const p of family) {
   let res = await fetch(`${URL}/auth/v1/admin/users`, {
