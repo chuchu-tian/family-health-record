@@ -8,18 +8,18 @@
 - **health_metrics RLS**：005 已执行，匿名读返回 []，隐私漏洞已堵上
 - **RLS 自动化测试：22/22 全绿**（含 anon 拒读、越权改挂、管理员代录等边界）
 
-## 唯一剩余配置：京东云 API Key
+## AI 识别已全线打通 ✅（2026-08-11 真实化验单验收）
 
-AI 识别链路已全通，最后一环是网关凭证。当前网关返回
-`Account invalid`，说明 `JD_CLOUD_API_KEY` 这个 Secret 还没配或值不对。
+真实 PDF 化验单端到端实测通过：识别（~26 秒）→ 核对页逐项显示
+病名/医院/科室/医生/费用/两种用药 → 确认保存 → 病历入库 → 搜「同仁医院」命中。
 
-在 Dashboard → Edge Functions → Secrets（你开过的那个页面）设置：
+最终配置（Edge Functions → Secrets）：
+- `JD_CLOUD_API_KEY` = JoyBuilder 平台申请的 key
+- `JD_CLOUD_ENDPOINT` = https://modelservice.jdcloud.com/anthropic/v1/messages
+- `JD_CLOUD_MODEL` = claude-sonnet-5-hq
 
-- `JD_CLOUD_API_KEY` = 你在京东云申请的网关 key（必填）
-- `JD_CLOUD_ENDPOINT` = 网关地址（可选，默认 https://modelservice.jdcloud.com/v1/messages）
-
-Secrets 保存后**无需重新部署**，下一次调用即生效。
-配好后在详情页点「🤖 AI 识别这张」即可走通完整流程：识别 → 核对页逐项确认 → 入库。
+注意：网关的 /v1/messages 路径不是 Anthropic 兼容入口（会报 Account invalid），
+必须用 /anthropic/v1/messages。
 
 ## 平时的验证命令
 
