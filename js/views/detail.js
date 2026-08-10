@@ -1,8 +1,9 @@
-// js/views/detail.js — 病历详情：分块展示 + 附件查看 + 按权限显示编辑/删除 + AI 识别
-import { getRecord, getMember, signedUrl, deleteRecord, analyzeAttachment, applyAiExtraction } from '../api.js'
+// js/views/detail.js — 病历详情：分块展示 + 附件查看 + 按权限显示编辑/删除 + AI 识别核对
+import { getRecord, getMember, signedUrl, deleteRecord, analyzeAttachment } from '../api.js'
 import { escapeHtml, fmtDate, STATUS } from '../utils.js'
 import { setTitle, go, render } from '../router.js'
 import { canWrite } from '../db.js'
+import { renderReview } from './review.js'
 
 export default async function detailView(app, [recordId]) {
   const r = await getRecord(recordId)
@@ -68,71 +69,51 @@ export default async function detailView(app, [recordId]) {
       : '<div class="pdf-thumb">📄 PDF<br>点击查看</div>'
     attsBox.append(link)
 
-    // AI 识别按钮和结果
-    if (writable && aiResults) {
-      const aiBtn = document.createElement('button')
-      aiBtn.className = 'btn btn-secondary'
-      aiBtn.style.marginTop = '10px'
-      aiBtn.textContent = a.ai_summary ? '🔄 重新识别' : '🤖 AI 识别'
-      aiBtn.dataset.attachmentId = a.id
-      aiResults.append(aiBtn)
+    if (!writable || !aiResults) continue
 
-      if (a.ai_summary) {
-        const summary = document.createElement('div')
-        summary.className = 'msg msg-ok'
-        summary.style.marginTop = '10px'
-        try {
-          const parsed = JSON.parse(a.ai_summary)
-          summary.innerHTML = `<b>📋 AI 识别结果：</b><pre style="white-space:pre-wrap;font-size:13px">${escapeHtml(JSON.stringify(parsed, null, 2))}</pre>`
-        } catch {
-          summary.textContent = `📋 摘要：${a.ai_summary}`
-        }
-        aiResults.append(summary)
-      }
-
-      aiBtn.addEventListener('click', async () => {
-        aiBtn.disabled = true
-        aiBtn.textContent = '⏳ 识别中…'
-        try {
-          const result = await analyzeAttachment(a.id)
-          if (result.success && result.extracted) {
-            const confirmDiv = document.createElement('div')
-            confirmDiv.className = 'msg msg-ok'
-            confirmDiv.style.marginTop = '10px'
-            confirmDiv.innerHTML = `
-              <b>✅ 识别成功！</b>
-              <pre style="white-space:pre-wrap;font-size:13px">${escapeHtml(JSON.stringify(result.extracted, null, 2))}</pre>
-              <button class="btn btn-primary" style="margin-top:10px" id="apply-ai-${a.id}">确认并应用到病历</button>
-              <button class="btn btn-secondary" style="margin-top:10px;margin-left:10px" id="cancel-ai-${a.id}">取消</button>
-            `
-            aiResults.append(confirmDiv)
-
-            document.getElementById(`apply-ai-${a.id}`).addEventListener('click', async () => {
-              try {
-                await applyAiExtraction(r.id, result.extracted)
-                alert('✅ 已应用 AI 识别结果到病历！')
-                go(`/record/${r.id}`)
-                await render()
-              } catch (e) {
-                alert(`应用失败：${e.message}`)
-              }
-            })
-
-            document.getElementById(`cancel-ai-${a.id}`).addEventListener('click', () => {
-              confirmDiv.remove()
-              aiBtn.disabled = false
-              aiBtn.textContent = '🤖 AI 识别'
-            })
-          } else {
-            throw new Error(result.error || 'AI 识别失败')
-          }
-        } catch (e) {
-          alert(`识别失败：${e.message}`)
-          aiBtn.disabled = false
-          aiBtn.textContent = '🤖 AI 识别'
-        }
-      })
+    // 已核对过的摘要（纯文本，纳入搜索）
+    if (a.ai_summary) {
+      const summary = document.createElement('div')
+      summary.className = 'msg msg-ok'
+      summary.style.whiteSpace = 'pre-wrap'
+      summary.textContent = `📋 已核对的摘要：\n${a.ai_summary}`
+      aiResults.append(summary)
     }
+
+    const aiBtn = document.createElement('button')
+    aiBtn.className = 'btn btn-secondary'
+    aiBtn.textContent = a.ai_summary ? '🔄 重新识别这张' : '🤖 AI 识别这张'
+    aiResults.append(aiBtn)
+
+    // 核对页挂载点
+    const reviewBox = document.createElement('div')
+    aiResults.append(reviewBox)
+
+    aiBtn.addEventListener('click', async () => {
+      aiBtn.disabled = true
+      aiBtn.textContent = '⏳ 识别中，请稍等…'
+      reviewBox.innerHTML = ''
+      try {
+        const result = await analyzeAttachment(a.id)
+        if (!result?.success || !result.extracted) {
+          throw new Error(result?.error || '没认出来')
+        }
+        // 进核对页：可改、可勾掉，确认后才入库
+        renderReview(reviewBox, {
+          recordId: r.id,
+          attachmentId: a.id,
+          extracted: result.extracted,
+          rawText: result.raw_ai_text,
+        }, async () => { go(`/record/${r.id}`); await render() })
+        aiBtn.hidden = true
+      } catch (e) {
+        // spec 第 6 节：AI 失败不阻塞存图，提示可重拍或直接保存原图
+        reviewBox.innerHTML = `<div class="msg msg-error">没认出来：${escapeHtml(e.message)}<br>
+          可以重拍一张再试，或者直接留着原图、手动填写病历。</div>`
+        aiBtn.disabled = false
+        aiBtn.textContent = '🔄 再试一次'
+      }
+    })
   }
 
   app.querySelector('#edit-btn')?.addEventListener('click', () => go(`/edit/${r.id}`))
