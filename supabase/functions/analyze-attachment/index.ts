@@ -111,9 +111,10 @@ serve(async (req) => {
 
     // ===== 4. 调用京东云 Claude 网关 =====
     const jdCloudApiKey = Deno.env.get('JD_CLOUD_API_KEY')!
-    // 默认值对齐 spec：京东云 Anthropic 兼容网关
+    // 端点与模型名都走 Secret：网关侧路径/可用模型会变，改 Secret 即时生效，无需重新部署
     const jdCloudEndpoint = Deno.env.get('JD_CLOUD_ENDPOINT')
-      || 'https://modelservice.jdcloud.com/v1/messages'
+      || 'https://modelservice.jdcloud.com/anthropic/v1/messages'
+    const jdCloudModel = Deno.env.get('JD_CLOUD_MODEL') || 'claude-sonnet-5'
 
     const prompt = `请分析这份病历/检查报告，提取以下信息（JSON 格式）：
 {
@@ -163,7 +164,7 @@ white_blood_cell, red_blood_cell, hemoglobin, platelet, uric_acid, creatinine, a
         'anthropic-version': '2023-06-01',
       },
       body: JSON.stringify({
-        model: 'claude-sonnet-5',
+        model: jdCloudModel,
         max_tokens: 2048,
         messages: [{
           role: 'user',
