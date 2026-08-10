@@ -1,22 +1,27 @@
--- 005_health_metrics_rls_fix.sql — 修复线上 health_metrics 的 RLS 漏洞
+-- 005_health_metrics_rls_fix.sql — 修复线上 health_metrics 的 RLS 漏洞（动态清空版）
 --
--- 背景：最初部署到线上的 004 版本四条策略都没写 `to authenticated`，
--- 配合 using(true)，导致【未登录（anon）也能读到全家健康指标】——
--- 已实测确认（插入探针行后 anon 可读回）。仓库里的 004 已改对，
--- 但线上跑的还是旧版。本文件幂等：drop 后按正确版本重建，可安全重复执行。
+-- 背景：线上旧策略允许未登录（anon）读全家健康指标（已实测确认）。
+-- 第一版本文件按 004 的四个策略名去 drop，但实测发现线上旧策略
+-- 名字与仓库不同（四条 create 全部成功=同名策略原本不存在），
+-- 于是旧的宽松 select 策略根本没被删掉，anon 依旧可读。
+-- 改为：遍历 pg_policies 清空该表全部策略，再按正确版本重建。幂等，可重复执行。
 --
--- 执行方式：Supabase Dashboard → SQL Editor 整段粘贴运行；
--- 或 psql "$SUPABASE_DB_URL" -f supabase/migrations/005_health_metrics_rls_fix.sql
---
--- 验证：执行后跑 node --env-file=.env.local --test tests/rls.test.mjs
--- 其中「指标: 匿名(未登录)读不到任何指标」一项必须变绿。
+-- 执行：Supabase Dashboard → SQL Editor 整段粘贴，Run（不要只选中部分行）。
+-- 验证：node --env-file=.env.local --test tests/rls.test.mjs → 22 项全绿。
 
 alter table health_metrics enable row level security;
 
-drop policy if exists health_metrics_select on health_metrics;
-drop policy if exists health_metrics_insert on health_metrics;
-drop policy if exists health_metrics_update on health_metrics;
-drop policy if exists health_metrics_delete on health_metrics;
+-- 清空 health_metrics 上的所有策略（无论叫什么名字）
+do $$
+declare p record;
+begin
+  for p in
+    select policyname from pg_policies
+    where schemaname = 'public' and tablename = 'health_metrics'
+  loop
+    execute format('drop policy %I on health_metrics', p.policyname);
+  end loop;
+end $$;
 
 -- 登录后全家可读；anon 无策略=默认拒绝
 create policy health_metrics_select on health_metrics for select to authenticated
@@ -31,3 +36,7 @@ create policy health_metrics_update on health_metrics for update to authenticate
 
 create policy health_metrics_delete on health_metrics for delete to authenticated
   using (can_write_member(member_id));
+
+-- 自查：执行完看下面这句的输出，应恰好 4 行、且 roles 均为 {authenticated}
+select policyname, roles, cmd from pg_policies
+where schemaname = 'public' and tablename = 'health_metrics' order by policyname;
